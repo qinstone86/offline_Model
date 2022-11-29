@@ -12,4 +12,3 @@ cat $input_file.f2h.token | tr A-Z a-z >  $input_file.f2h.token.low
 
 #bpe
 python tools/apply_bpe.py --codes train.en.bpe_codes --input  $input_file.f2h.token.low --output $output_file
-python tools/apply_bpe.py --codes train.en.bpe_codes --input  $input_file.f2h.token.low --output $output_file

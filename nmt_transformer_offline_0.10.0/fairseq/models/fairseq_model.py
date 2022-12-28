@@ -80,6 +80,9 @@ class BaseFairseqModel(nn.Module):
         sample: Optional[Dict[str, Tensor]] = None,
     ):
         """Scriptable helper function for get_normalized_probs in ~BaseFairseqModel"""
+        print("fairseq_model:log_probs",log_probs)
+        print("fairseq_model:sample",sample)
+        print("fairseq_model:net_output",net_output)
         if hasattr(self, "decoder"):
             return self.decoder.get_normalized_probs(net_output, log_probs, sample)
         elif torch.is_tensor(net_output):
@@ -160,6 +163,7 @@ class BaseFairseqModel(nn.Module):
             if hasattr(m, "set_num_updates") and m != self:
                 m.set_num_updates(num_updates)
 
+    @torch.jit.ignore
     def prepare_for_inference_(self, cfg: DictConfig):
         """Prepare model for inference."""
         kwargs = {}
@@ -174,6 +178,7 @@ class BaseFairseqModel(nn.Module):
             kwargs["retain_dropout_modules"] = cfg.generation.retain_dropout_modules
         self.make_generation_fast_(**kwargs)
 
+    @torch.jit.ignore
     def make_generation_fast_(self, **kwargs):
         """
         Legacy entry point to optimize model for faster generation.
@@ -210,13 +215,18 @@ class BaseFairseqModel(nn.Module):
 
         apply_make_generation_fast_(self, "")
 
-        def train(mode=True):
-            if mode:
-                raise RuntimeError("cannot train after make_generation_fast")
+        #@torch.jit.ignore
+        #def train(mode=True):
+        #    if mode:
+        #        raise RuntimeError("cannot train after make_generation_fast")
 
         # this model should no longer be used for training
         self.eval()
-        self.train = train
+        #self.train = train
+
+    def train(self,mode=True):
+        if mode:
+           raise RuntimeError("cannot train after make_generation_fast")
 
     def prepare_for_onnx_export_(self, **kwargs):
         """Make model exportable via ONNX trace."""

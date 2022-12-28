@@ -19,7 +19,9 @@ from collections import namedtuple
 
 import numpy as np
 import torch
-
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+print('=====================',sys.path)
+#sys.path.append(os.path.dirname(os.getcwd()))
 from fairseq import checkpoint_utils, distributed_utils, options, tasks, utils
 from fairseq.dataclass.configs import FairseqConfig
 from fairseq.dataclass.utils import convert_namespace_to_omegaconf
@@ -79,8 +81,11 @@ def make_batches(lines, cfg, task, max_positions, encode_fn):
         constraints_tensor = pack_constraints(batch_constraints)
     else:
         constraints_tensor = None
-
+    print("line:",len(lines),lines)
     tokens, lengths = task.get_interactive_tokens_and_lengths(lines, encode_fn)
+    print("tokens:",type(tokens),tokens)
+    print("lengths:",type(lengths),lengths)
+    print("constraints_tensor:",type(constraints_tensor),constraints_tensor)
 
     itr = task.get_batch_iterator(
         dataset=task.build_dataset_for_inference(
@@ -137,8 +142,10 @@ def main(cfg: FairseqConfig):
     use_cuda = torch.cuda.is_available() and not cfg.common.cpu
 
     # Setup task, e.g., translation
+    print("before setup cfg.task:", type(cfg.task),cfg.task)
     task = tasks.setup_task(cfg.task)
-
+    print("setup task:", type(task),task)
+    print("-----------------------------------")
     # Load ensemble
     overrides = ast.literal_eval(cfg.common_eval.model_overrides)
     logger.info("loading model(s) from {}".format(cfg.common_eval.path))
@@ -150,6 +157,15 @@ def main(cfg: FairseqConfig):
         strict=(cfg.checkpoint.checkpoint_shard_count == 1),
         num_shards=cfg.checkpoint.checkpoint_shard_count,
     )
+    print("*****cli:*****")
+    print(len(models),type(models[0]))
+    print('paths',utils.split_paths(cfg.common_eval.path))
+    print('overrides',overrides)
+    print('task',task)
+    print('task',type(task))
+    print('checkpoint_suffix',cfg.checkpoint.checkpoint_suffix)
+    print(cfg.checkpoint.checkpoint_shard_count)
+    print('num_shard',cfg.checkpoint.checkpoint_shard_count)
 
     # Set dictionaries
     src_dict = task.source_dictionary
@@ -171,6 +187,10 @@ def main(cfg: FairseqConfig):
     # Handle tokenization and BPE
     tokenizer = task.build_tokenizer(cfg.tokenizer)
     bpe = task.build_bpe(cfg.bpe)
+    print("cfg.tokenizer:",type(cfg.tokenizer),cfg.tokenizer)
+    print("tokenizer:",type(tokenizer),tokenizer)
+    print("cfg.bpe:",type(cfg.bpe),cfg.bpe)
+    print("bpe:",type(bpe),bpe)
 
     def encode_fn(x):
         if tokenizer is not None:
@@ -223,10 +243,17 @@ def main(cfg: FairseqConfig):
                     "src_lengths": src_lengths,
                 },
             }
+            torch.set_printoptions(profile="full")
+            print('src_tokens',type(src_tokens),src_tokens)
+            print('src_lengths',type(src_lengths),src_lengths)
+            print('generator',type(generator),generator)
+            torch.set_printoptions(profile="default")
             translate_start_time = time.time()
             translations = task.inference_step(
                 generator, models, sample, constraints=constraints
             )
+            print('translations:',type(translations),translations)
+            print('cfg.generation.constraints',type(cfg.generation.constraints),cfg.generation.constraints)
             translate_time = time.time() - translate_start_time
             total_translate_time += translate_time
             list_constraints = [[] for _ in range(bsz)]
@@ -234,6 +261,8 @@ def main(cfg: FairseqConfig):
                 list_constraints = [unpack_constraints(c) for c in constraints]
             for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
                 src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
+                print('src_tokens_i',type(src_tokens_i),src_tokens_i)
+                print('src_tokens_i',type(src_tokens_i),src_tokens_i)
                 constraints = list_constraints[i]
                 results.append(
                     (
@@ -251,19 +280,25 @@ def main(cfg: FairseqConfig):
         for id_, src_tokens, hypos, info in sorted(results, key=lambda x: x[0]):
             src_str = ""
             if src_dict is not None:
+                print("~~~~ src_tokens",src_tokens,cfg.common_eval.post_process)
                 src_str = src_dict.string(src_tokens, cfg.common_eval.post_process)
                 print("S-{}\t{}".format(id_, src_str))
                 print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
                 for constraint in info["constraints"]:
+                    print("constraints:",constraint)
+                    print("cfg.common_eval.post_process:",cfg.common_eval.post_process)
                     print(
                         "C-{}\t{}".format(
                             id_,
                             tgt_dict.string(constraint, cfg.common_eval.post_process),
                         )
                     )
-
+            print("Process top predictions: tgt_dict",type(tgt_dict),tgt_dict)
+            print("Process top predictions: cfg.generation.nbest",cfg.generation.nbest)
+            print("Process top predictions: =cfg.common_eval.post_process",cfg.common_eval.post_process)
             # Process top predictions
             for hypo in hypos[: min(len(hypos), cfg.generation.nbest)]:
+                print("hypo",type(hypo),hypo)
                 hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
                     hypo_tokens=hypo["tokens"].int().cpu(),
                     src_str=src_str,
@@ -274,6 +309,7 @@ def main(cfg: FairseqConfig):
                     extra_symbols_to_ignore=get_symbols_to_strip_from_output(generator),
                 )
                 detok_hypo_str = decode_fn(hypo_str)
+                print("hypo_str",hypo_str,detok_hypo_str)
                 score = hypo["score"] / math.log(2)  # convert to base 2
                 # original hypothesis (after tokenization and BPE)
                 print("H-{}\t{}\t{}".format(id_, score, hypo_str))
@@ -310,8 +346,10 @@ def main(cfg: FairseqConfig):
 def cli_main():
     parser = options.get_interactive_generation_parser()
     args = options.parse_args_and_arch(parser)
+    print("---test---",args)
     distributed_utils.call_main(convert_namespace_to_omegaconf(args), main)
 
 
 if __name__ == "__main__":
+    print('=====================',sys.path)
     cli_main()

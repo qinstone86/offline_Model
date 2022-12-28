@@ -18,4 +18,4 @@ CUDA_VISIBLE_DEVICES=0 python $path_fairseq/interactive.py $data_dirr \
                         --source-lang en --target-lang zh \
                         --path $model_path \
                         --buffer-size 2000 --batch-size 128 --remove-bpe \
-                        --beam 5 --input $input_file  | grep "H-"| cut -f3 > $output_file
+                        --beam 5 --input $input_file # | grep "H-"| cut -f3 > $output_file

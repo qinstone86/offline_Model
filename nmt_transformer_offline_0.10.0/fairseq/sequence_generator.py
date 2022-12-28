@@ -129,10 +129,27 @@ class SequenceGenerator(nn.Module):
         self.lm_weight = lm_weight
         if self.lm_model is not None:
             self.lm_model.eval()
+        print("======  export whole model to pt file ============")
+        torch.save(self,"seq_mode.pt")
+        print("=== done === ")
 
     def cuda(self):
         self.model.cuda()
         return self
+
+    @torch.jit.export
+    def run(self,
+        src_tokens,
+        src_lengths,
+        prev_output_tokens):
+        sample = {
+         "net_input": {
+                    "prev_output_tokens":  prev_output_tokens,
+                    "src_tokens": src_tokens,
+                    "src_lengths": src_lengths
+                    }
+        }
+        return self.forward(sample,None,None)
 
     @torch.no_grad()
     def forward(
@@ -171,8 +188,8 @@ class SequenceGenerator(nn.Module):
             }
             if timer is not None:
                 timer.start()
-            with torch.no_grad():
-                hypos = self.generate(encoder_input)
+            #with torch.no_grad():
+            hypos = self.generate(encoder_input)
             if timer is not None:
                 timer.stop(sum(len(h[0]["tokens"]) for h in hypos))
             for i, id in enumerate(s["id"].data):
@@ -187,7 +204,7 @@ class SequenceGenerator(nn.Module):
 
     @torch.no_grad()
     def generate(
-        self, models, sample: Dict[str, Dict[str, Tensor]], **kwargs
+        self, models, sample: Dict[str, Dict[str, Tensor]] , **kwargs
     ) -> List[List[Dict[str, Tensor]]]:
         """Generate translations. Match the api of other fairseq generators.
 
@@ -201,7 +218,7 @@ class SequenceGenerator(nn.Module):
             bos_token (int, optional): beginning of sentence token
                 (default: self.eos)
         """
-        return self._generate(sample, **kwargs)
+        return self._generate(sample , **kwargs)
 
     def _generate(
         self,
@@ -218,6 +235,10 @@ class SequenceGenerator(nn.Module):
             ],
         )
         net_input = sample["net_input"]
+        print("_generate: sample",sample)
+        print("_generate: prefix_tokens",prefix_tokens)
+        print("_generate: constraints",constraints)
+        print("_generate: bos_token",bos_token)             
         #print(self.tgt_dict[0])
         #print(self.tgt_dict[1])
         #print(self.tgt_dict[2])
@@ -274,8 +295,8 @@ class SequenceGenerator(nn.Module):
             self.min_len <= max_len
         ), "min_len cannot be larger than max_len, please adjust these!"
         # compute the encoder output for each beam
-        with torch.autograd.profiler.record_function("EnsembleModel: forward_encoder"):
-            encoder_outs = self.model.forward_encoder(net_input)
+        #with torch.autograd.profiler.record_function("EnsembleModel: forward_encoder"):
+        encoder_outs = self.model.forward_encoder(net_input)
 
         # placeholder of indices for bsz * beam_size to hold tokens and accumulative scores
         new_order = torch.arange(bsz).view(-1, 1).repeat(1, beam_size).view(-1)
@@ -352,10 +373,10 @@ class SequenceGenerator(nn.Module):
                 encoder_outs = self.model.reorder_encoder_out(
                     encoder_outs, reorder_state
                 )
-            with torch.autograd.profiler.record_function(
-                "EnsembleModel: forward_decoder"
-            ):
-                lprobs, avg_attn_scores = self.model.forward_decoder(
+            #with torch.autograd.profiler.record_function(
+            #    "EnsembleModel: forward_decoder"
+            #):
+            lprobs, avg_attn_scores = self.model.forward_decoder(
                     tokens[:, : step + 1],
                     encoder_outs,
                     incremental_states,
@@ -589,6 +610,7 @@ class SequenceGenerator(nn.Module):
             finalized[sent] = torch.jit.annotate(
                 List[Dict[str, Tensor]], finalized[sent]
             )
+        print("_generate: finalized ",type(finalized),len(finalized),finalized)
         return finalized
 
     def _prefix_tokens(

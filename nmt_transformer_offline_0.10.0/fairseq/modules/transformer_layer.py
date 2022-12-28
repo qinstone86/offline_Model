@@ -483,7 +483,7 @@ class TransformerDecoderLayerBase(nn.Module):
                     saved_state["prev_key_padding_mask"] = prev_attn_state[2]
                 assert incremental_state is not None
                 self.encoder_attn._set_input_buffer(incremental_state, saved_state)
-
+            #print("transfor_layer",type(self.need_attn),self.need_attn)
             x, attn = self.encoder_attn(
                 query=x,
                 key=encoder_out,
@@ -491,7 +491,8 @@ class TransformerDecoderLayerBase(nn.Module):
                 key_padding_mask=encoder_padding_mask,
                 incremental_state=incremental_state,
                 static_kv=True,
-                need_weights=need_attn or (not self.training and self.need_attn),
+                need_weights=need_attn, # or (not self.training and self.need_attn),
+                #need_weights=need_attn or (not self.training), # and self.need_attn == True),
                 need_head_weights=need_head_weights,
             )
             x = self.dropout_module(x)

@@ -163,6 +163,10 @@ class TransformerEncoderBase(FairseqEncoder):
                   hidden states of shape `(src_len, batch, embed_dim)`.
                   Only populated if *return_all_hiddens* is True.
         """
+        #print("encoder=== src_tokens",type(src_tokens),src_tokens,src_tokens.size())
+        #print("encoder=== src_lengths",type(src_lengths),src_lengths,src_lengths.shape)
+        #print("encoder=== return_all_hiddens",type(return_all_hiddens),return_all_hiddens)
+        #print("encoder=== token_embeddings",type(token_embeddings),token_embeddings)
         return self.forward_scriptable(
             src_tokens, src_lengths, return_all_hiddens, token_embeddings
         )

@@ -214,8 +214,12 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
                 - a dictionary with any model-specific outputs
         """
 
-        #print(encoder_out)
-        #print(prev_output_tokens)
+        print("decoder=== encoder_out",encoder_out)
+        print("decoder=== prev_output_tokens",prev_output_tokens)
+        print("decoder=== return_all_hiddens",return_all_hiddens)
+        print("decoder=== features_only",features_only)
+        print("decoder=== alignment_layer",alignment_layer)
+        print("decoder=== alignment_heads",alignment_heads)
         x, extra = self.extract_features(
             prev_output_tokens,
             encoder_out=encoder_out,
@@ -227,6 +231,9 @@ class TransformerDecoderBase(FairseqIncrementalDecoder):
 
         if not features_only:
             x = self.output_layer(x)
+        #print("decoder=== x",x.size(),x)
+        #print("decoder=== extra",extra.keys(),len(extra["attn"]),extra["attn"][0].size())
+        #print("decoder=== extra",extra.keys(),len(extra["inner_states"]),extra["inner_states"][0].size(),extra)
         return x, extra
 
     def extract_features(

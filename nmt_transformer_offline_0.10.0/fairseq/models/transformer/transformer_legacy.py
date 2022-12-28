@@ -2,7 +2,8 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
+import torch
+import torch.nn as nn
 from fairseq.dataclass.utils import gen_parser_from_dataclass
 from fairseq.models import (
     register_model,
@@ -76,6 +77,10 @@ class TransformerModel(TransformerModelBase):
 
     def __init__(self, args, encoder, decoder):
         cfg = TransformerConfig.from_namespace(args)
+        print("construct of transform model: args, encoder,decoder")
+        print('args:',type(args),args)
+        print('to cfg:',type(cfg),cfg)
+        print('------------------')
         super().__init__(cfg, encoder, decoder)
         self.args = args
 
@@ -91,7 +96,10 @@ class TransformerModel(TransformerModelBase):
     @classmethod
     def build_model(cls, args, task):
         """Build a new model instance."""
-
+        print("build_model in transform model: args,task")
+        print('args:',type(args),args)
+        print('task:',type(task),task)
+        print('------------------')
         # make sure all arguments are present in older models
         base_architecture(args)
 
@@ -130,7 +138,12 @@ class TransformerModel(TransformerModelBase):
                 args, "min_params_to_wrap", DEFAULT_MIN_PARAMS_TO_WRAP
             )
         cfg = TransformerConfig.from_namespace(args)
-        return super().build_model(cfg, task)
+        m = super().build_model(cfg, task)
+        print("======  export whole model to pt file ============")
+        print('args:',type(args),args)
+        torch.save(m,"tf_mode.pt")
+        print("=== done === ")
+        return m #super().build_model(cfg, task)
 
     @classmethod
     def build_embedding(cls, args, dictionary, embed_dim, path=None):

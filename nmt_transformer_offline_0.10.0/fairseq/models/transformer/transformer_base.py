@@ -46,6 +46,9 @@ class TransformerModelBase(FairseqEncoderDecoderModel):
         super().__init__(encoder, decoder)
         self.cfg = cfg
         self.supports_align_args = True
+        print("construct of base: cfg, encoder,decoder")
+        print(type(cfg),cfg)
+        print('------------------')
 
     @classmethod
     def add_args(cls, parser):
@@ -57,6 +60,10 @@ class TransformerModelBase(FairseqEncoderDecoderModel):
 
     @classmethod
     def build_model(cls, cfg, task):
+        print("build_model in base: cfg, task")
+        print(type(cfg),cfg)
+        print(type(task),task)
+        print('------------------')
         """Build a new model instance."""
 
         # --  TODO T96535332
@@ -158,6 +165,8 @@ class TransformerModelBase(FairseqEncoderDecoderModel):
         Copied from the base class, but without ``**kwargs``,
         which are not supported by TorchScript.
         """
+        print("tf_base:src_tokens",type(src_tokens),src_tokens)
+        print("tf_base:src_lengths",type(src_lengths),src_lengths)
         encoder_out = self.encoder(
             src_tokens, src_lengths=src_lengths, return_all_hiddens=return_all_hiddens
         )
@@ -183,7 +192,12 @@ class TransformerModelBase(FairseqEncoderDecoderModel):
         sample: Optional[Dict[str, Tensor]] = None,
     ):
         """Get normalized probabilities (or log probs) from a net's output."""
-        return self.get_normalized_probs_scriptable(net_output, log_probs, sample)
+        #print("get_normalized_probs net_output",type(net_output),net_output)
+        #print("get_normalized_probs log_probs",type(log_probs),log_probs)
+        #print("get_normalized_probs sample",type(sample),sample)
+        res = self.get_normalized_probs_scriptable(net_output, log_probs, sample)
+        #print("get_normalized_probs res",type(res),res)
+        return res
 
 
 def Embedding(num_embeddings, embedding_dim, padding_idx):

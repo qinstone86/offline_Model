@@ -61,6 +61,7 @@ class Dictionary:
     def index(self, sym):
         """Returns the index of the specified symbol"""
         assert isinstance(sym, str)
+        print("len(self.indices):",len(self.indices))
         if sym in self.indices:
             return self.indices[sym]
         return self.unk_index
@@ -139,6 +140,7 @@ class Dictionary:
         """Updates counts from new dictionary."""
         for word in new_dict.symbols:
             idx2 = new_dict.indices[word]
+            print("update",word,self.indices[word],"-->",idx)
             if word in self.indices:
                 idx = self.indices[word]
                 self.count[idx] = self.count[idx] + new_dict.count[idx2]
@@ -227,6 +229,7 @@ class Dictionary:
         return d
 
     def add_from_file(self, f):
+        print("load file", f)
         """
         Loads a pre-existing dictionary from a text file and adds its symbols
         to this instance.
@@ -243,9 +246,10 @@ class Dictionary:
                     "rebuild the dataset".format(f)
                 )
             return
-
+ 
         lines = f.readlines()
         indices_start_line = self._load_meta(lines)
+        print("len(lines)=",len(lines))
 
         for line in lines[indices_start_line:]:
             try:
@@ -255,6 +259,7 @@ class Dictionary:
                     line, field = line.rsplit(" ", 1)
                 else:
                     overwrite = False
+                #print("tesst ===",line,field)
                 count = int(field)
                 word = line
                 if word in self and not overwrite:
@@ -270,6 +275,9 @@ class Dictionary:
                 raise ValueError(
                     f"Incorrect dictionary format, expected '<token> <cnt> [flags]': \"{line}\""
                 )
+
+        #idx = self.index('an')
+        #print("an-->",idx)
 
     def _save(self, f, kv_iterator):
         if isinstance(f, str):
@@ -310,22 +318,31 @@ class Dictionary:
         append_eos=True,
         reverse_order=False,
     ) -> torch.IntTensor:
+        print('consumer:',consumer)
+        print('append_eos:',append_eos)
+        print('reverse_order:',reverse_order)
+        print("input line:",line)
         words = line_tokenizer(line)
+        print("input words",words,len(words))
         if reverse_order:
             words = list(reversed(words))
         nwords = len(words)
         ids = torch.IntTensor(nwords + 1 if append_eos else nwords)
+        print("ids:",type(ids),ids)
 
         for i, word in enumerate(words):
             if add_if_not_exist:
                 idx = self.add_symbol(word)
             else:
                 idx = self.index(word)
+                print(word,"-->",idx)
             if consumer is not None:
                 consumer(word, idx)
             ids[i] = idx
+            print(i,word,idx)
         if append_eos:
             ids[nwords] = self.eos_index
+        print('ids:',ids)
         return ids
 
     @staticmethod

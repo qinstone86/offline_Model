@@ -29,7 +29,8 @@ if  (eval {require Thread;1;}) {
   Thread->import();
 }
 
-my $mydir = "/home/zhangxu/zhangpei_workspace/tools/share/nonbreaking_prefixes";
+my $mydir = "./tools/share/nonbreaking_prefixes";
+#my $mydir = "/home/zhangxu/zhangpei_workspace/tools/share/nonbreaking_prefixes";
 
 my %NONBREAKING_PREFIX = ();
 my @protected_patterns = ();

@@ -19,7 +19,8 @@ def q2b(ustring):
         elif (inside_code >= 65281 and inside_code <= 65374):
             inside_code -= 65248
 
-        rstring += unichr(inside_code)
+        rstring += chr(inside_code)
+        #rstring += unichr(inside_code)
     return rstring
 
 if __name__=="__main__":
@@ -28,4 +29,4 @@ if __name__=="__main__":
         sys.exit(1)
 
     for line in sys.stdin:
-        sys.stdout.write(q2b(line.decode("utf-8")).encode("utf-8"))
+        sys.stdout.write(str(q2b(line.encode("utf-8").decode("utf-8")))) #.encode("utf-8"))
